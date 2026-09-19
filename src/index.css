@@ -1,1 +1,90 @@
 @import "tailwindcss";
+
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #172033;
+  background: #f7f8fc;
+}
+
+* { box-sizing: border-box; }
+
+button, a, input { -webkit-tap-highlight-color: transparent; }
+
+::selection { background: #e0e7ff; color: #3730a3; }
+
+body { margin: 0; min-width: 320px; }
+
+/* Shared page rhythm for every authenticated module. */
+main > .min-h-screen { min-height: calc(100vh - 73px); }
+main .p-6 { padding: 1.5rem; }
+main h1 { letter-spacing: -0.025em; }
+
+/* Existing cards across courses, grades, events, meals and reports. */
+.bg-white.rounded-xl.border.border-slate-200,
+.bg-white.rounded-xl.shadow,
+.bg-white.rounded-lg.shadow,
+.bg-white.rounded-lg.border {
+  border-radius: 1rem;
+  border-color: #e6eaf1;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .035), 0 8px 24px rgba(15, 23, 42, .035);
+}
+
+.bg-white.rounded-xl.border.border-slate-200:hover { border-color: #c7d2fe; }
+
+/* Forms use the same quiet, accessible treatment regardless of page. */
+main input:not([type="checkbox"]):not([type="radio"]),
+main select,
+main textarea {
+  border-radius: .75rem !important;
+  border-color: #d9e0ea !important;
+  background: #fff;
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+main input:not([type="checkbox"]):not([type="radio"]):focus,
+main select:focus,
+main textarea:focus {
+  border-color: #818cf8 !important;
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, .12) !important;
+  outline: none;
+}
+
+main label { color: #475569; }
+
+/* Tables get softer dividers and stay readable on small screens. */
+main table { border-collapse: separate; border-spacing: 0; }
+main thead { background: #f8fafc; }
+main th { color: #64748b !important; font-size: .7rem; letter-spacing: .055em; text-transform: uppercase; }
+main tbody tr { transition: background .16s ease; }
+main tbody tr:hover { background: #f8faff; }
+main td, main th { border-color: #edf0f5 !important; }
+
+/* Action elements already carry colour utilities; these rules give them a consistent lift. */
+main button:not([class*="rounded-full"]), main a[class*="bg-"] { transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease; }
+main button:not(:disabled):hover { transform: translateY(-1px); }
+main button:disabled { cursor: not-allowed; opacity: .58; }
+
+@media (min-width: 768px) {
+  main .p-6 { padding: 2rem; }
+  main .max-w-6xl, main .max-w-5xl { max-width: 80rem; }
+}
+
+@media (max-width: 639px) {
+  main .p-6 { padding: 1rem; }
+  main h1 { font-size: 1.5rem !important; }
+  main .grid { gap: .875rem; }
+}
+
+html.dark, html.dark body, html.dark #root { background: #0b1120; color: #e2e8f0; }
+html.dark .bg-white { background-color: #111a2d !important; }
+html.dark .bg-slate-50, html.dark .bg-\[\#f7f8fc\] { background-color: #0b1120 !important; }
+html.dark .bg-slate-100 { background-color: #18233a !important; }
+html.dark .border-slate-200, html.dark .border-slate-100 { border-color: #25324a !important; }
+html.dark .text-slate-900, html.dark .text-slate-800 { color: #f1f5f9 !important; }
+html.dark .text-slate-700, html.dark .text-slate-600 { color: #cbd5e1 !important; }
+html.dark .text-slate-500, html.dark .text-slate-400 { color: #94a3b8 !important; }
+html.dark .hover\:bg-slate-50:hover, html.dark .hover\:bg-slate-100:hover { background-color: #1b2941 !important; }
+html.dark main input:not([type="checkbox"]):not([type="radio"]), html.dark main select, html.dark main textarea { background: #162033; border-color: #2c3b56 !important; color: #e2e8f0; }
+html.dark main thead, html.dark main tbody tr:hover { background: #18233a; }
+html.dark main td, html.dark main th { border-color: #25324a !important; }
+html.dark main label { color: #cbd5e1; }

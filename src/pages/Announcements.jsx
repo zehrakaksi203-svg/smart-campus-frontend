@@ -49,8 +49,14 @@ function Announcements() {
         getMyNotifications(),
       ]);
 
-      setAnnouncements(announcementRes.data || []);
-      setNotifications(notificationRes.data || []);
+      setAnnouncements(Array.isArray(announcementRes.data) ? announcementRes.data : []);
+      setNotifications(
+        Array.isArray(notificationRes.data?.notifications)
+          ? notificationRes.data.notifications
+          : Array.isArray(notificationRes.data)
+            ? notificationRes.data
+            : []
+      );
 
       if (currentRole === "Admin" || currentRole === "Faculty") {
         try {

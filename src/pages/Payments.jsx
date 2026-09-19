@@ -122,7 +122,7 @@ export default function Payments() {
         amount: Number(form.amount),
         description: form.description || undefined,
       };
-      if (role === "Admin" && form.studentId) {
+      if (isAdmin && form.studentId) {
         payload.studentId = Number(form.studentId);
       }
       await createPayment(payload);

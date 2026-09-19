@@ -1,5 +1,39 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import api from "../api/axios";
+import Skeleton from "../components/Skeleton";
+
+function ProfileSkeleton() {
+  return (
+    <div className="min-h-screen bg-slate-50 p-6 md:p-10">
+      <div className="max-w-3xl mx-auto">
+        <Skeleton className="h-7 w-24 mb-6" />
+        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
+          <Skeleton className="h-20 w-full rounded-none" />
+          <div className="flex flex-col items-center pt-6 px-6">
+            <Skeleton className="w-24 h-24 rounded-full" />
+            <Skeleton className="h-6 w-40 mt-4" />
+            <Skeleton className="h-4 w-56 mt-2" />
+            <div className="mt-4 flex gap-3">
+              <Skeleton className="h-16 w-20 rounded-2xl" />
+              <Skeleton className="h-16 w-20 rounded-2xl" />
+              <Skeleton className="h-16 w-20 rounded-2xl" />
+            </div>
+          </div>
+          <div className="px-6 pb-8 pt-6">
+            <Skeleton className="h-3 w-32 mb-3" />
+            <div className="grid sm:grid-cols-2 gap-3 mb-6">
+              <Skeleton className="h-16 rounded-xl" />
+              <Skeleton className="h-16 rounded-xl" />
+            </div>
+            <Skeleton className="h-11 w-full rounded-xl mb-3" />
+            <Skeleton className="h-11 w-full rounded-xl" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function Profile() {
   const [user, setUser] = useState(null);
@@ -40,11 +74,7 @@ function Profile() {
   };
 
   if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <p className="text-slate-400 font-medium">Yükleniyor...</p>
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   const studentProfile = user.studentProfile;
@@ -69,8 +99,8 @@ function Profile() {
       : user.role;
 
   const InfoItem = ({ icon, label, value }) => (
-    <div className="flex items-center gap-3 bg-white rounded-xl p-3.5 border border-slate-100 shadow-sm">
-      <div className="w-9 h-9 rounded-lg bg-violet-50 flex items-center justify-center text-lg shrink-0">
+    <div className="flex items-center gap-3 bg-white rounded-xl p-3.5 border border-slate-100 shadow-sm hover:shadow-md hover:border-violet-100 transition">
+      <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center text-lg shrink-0">
         {icon}
       </div>
       <div className="min-w-0">
@@ -87,22 +117,25 @@ function Profile() {
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-10">
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6 text-slate-900">Profil</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-slate-900">Profil</h1>
+        </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-lg mb-4">
+          <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-lg mb-4">
             {error}
           </div>
         )}
         {message && (
-          <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm p-3 rounded-lg mb-4">
+          <div role="status" aria-live="polite" className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm p-3 rounded-lg mb-4">
             {message}
           </div>
         )}
 
         <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
           {/* Cover */}
-          <div className="relative h-20 bg-gradient-to-br from-violet-600 via-violet-500 to-fuchsia-500 overflow-hidden">
+          <div className="relative h-24 bg-gradient-to-br from-violet-600 via-violet-500 to-fuchsia-500 overflow-hidden">
+            <div className="absolute -right-8 -top-12 h-40 w-40 rounded-full border-[20px] border-white/10" />
             <div className="absolute top-3 right-4">
               <span className="inline-flex items-center gap-1.5 bg-white/20 text-white text-xs font-semibold px-3 py-1.5 rounded-full backdrop-blur-md">
                 {user.role === "Student" ? "🎓" : user.role === "Faculty" ? "🏛️" : "⚙️"}
@@ -113,7 +146,7 @@ function Profile() {
 
           {/* Avatar + name */}
           <div className="flex flex-col items-center pt-6 px-6">
-            <div className="w-24 h-24 rounded-full bg-white shadow-lg p-1.5">
+            <div className="w-24 h-24 rounded-full bg-white shadow-lg p-1.5 -mt-16 relative z-10">
               <div className="w-full h-full rounded-full bg-gradient-to-br from-violet-500 to-violet-700 text-white flex items-center justify-center text-3xl font-bold">
                 {initials}
               </div>
@@ -125,8 +158,8 @@ function Profile() {
             <p className="text-sm text-slate-500">{user.email}</p>
 
             {studentProfile?.gpa !== undefined && (
-              <div className="mt-4 flex gap-3">
-                <div className="text-center px-5 py-2.5 rounded-2xl bg-violet-50">
+              <div className="mt-5 grid grid-cols-3 gap-3 w-full max-w-sm">
+                <div className="text-center px-3 py-3 rounded-2xl bg-violet-50 border border-violet-100">
                   <p className="text-lg font-bold text-violet-600">
                     {studentProfile.gpa}
                   </p>
@@ -134,7 +167,7 @@ function Profile() {
                     GPA
                   </p>
                 </div>
-                <div className="text-center px-5 py-2.5 rounded-2xl bg-slate-100">
+                <div className="text-center px-3 py-3 rounded-2xl bg-slate-100 border border-slate-200">
                   <p className="text-lg font-bold text-slate-600">
                     {studentProfile.classYear}
                   </p>
@@ -142,7 +175,7 @@ function Profile() {
                     Sınıf
                   </p>
                 </div>
-                <div className="text-center px-5 py-2.5 rounded-2xl bg-emerald-50">
+                <div className="text-center px-3 py-3 rounded-2xl bg-emerald-50 border border-emerald-100">
                   <p className="text-lg font-bold text-emerald-600">
                     {studentProfile.status}
                   </p>
@@ -184,20 +217,30 @@ function Profile() {
                 </div>
               )}
 
-              <button
-                onClick={() => setEditing(true)}
-                className="w-full bg-violet-600 hover:bg-violet-700 text-white py-3 rounded-xl font-semibold transition shadow-md"
-              >
-                ✏️ Profili Düzenle
-              </button>
+              <div className="space-y-3">
+                <Link
+                  to="/settings/notifications"
+                  className="block w-full text-center bg-slate-100 hover:bg-slate-200 text-slate-700 py-3 rounded-xl font-semibold transition"
+                >
+                  🔔 Bildirim Ayarları
+                </Link>
+
+                <button
+                  onClick={() => setEditing(true)}
+                  className="w-full bg-violet-600 hover:bg-violet-700 text-white py-3 rounded-xl font-semibold transition shadow-md"
+                >
+                  ✏️ Profili Düzenle
+                </button>
+              </div>
             </div>
           ) : (
-            <form onSubmit={handleSave} className="px-6 pb-8 pt-6 space-y-4">
+            <form onSubmit={handleSave} className="px-6 pb-8 pt-6 space-y-4" noValidate>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label htmlFor="profile-fullName" className="block text-sm font-medium text-slate-700 mb-1">
                   Ad Soyad
                 </label>
                 <input
+                  id="profile-fullName"
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
@@ -206,10 +249,11 @@ function Profile() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
+                <label htmlFor="profile-email" className="block text-sm font-medium text-slate-700 mb-1">
                   E-posta
                 </label>
                 <input
+                  id="profile-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -222,6 +266,7 @@ function Profile() {
                 <button
                   type="submit"
                   disabled={saving}
+                  aria-busy={saving}
                   className="flex-1 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white py-2.5 rounded-xl font-semibold transition shadow-md"
                 >
                   {saving ? "Kaydediliyor..." : "Kaydet"}

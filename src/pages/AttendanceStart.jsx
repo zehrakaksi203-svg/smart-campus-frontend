@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import QRCode from "react-qr-code";
-import { createSession, getMySessions, closeSession } from "../api/attendanceSession";
+import { createSession, getMySessions, closeSession, refreshQrCode } from "../api/attendanceSession";
 import { getAllCourseSections } from "../api/courses";
 
 const MOCK_LOCATION_ENABLED =
@@ -27,6 +27,25 @@ function AttendanceStart() {
   const [session, setSession] = useState(null);
   const [mySessions, setMySessions] = useState([]);
   const [sections, setSections] = useState([]);
+    // QR kodu her 5 saniyede bir otomatik yeniler (session açıkken)
+    useEffect(() => {
+      if (!session || !session.id || !session.qrCode) return;
+  
+      const interval = setInterval(async () => {
+        try {
+          const res = await refreshQrCode(session.id);
+          const newQrCode = res.data?.qrCode;
+  
+          if (newQrCode) {
+            setSession((prev) => (prev ? { ...prev, qrCode: newQrCode } : prev));
+          }
+        } catch (err) {
+          console.error("QR yenilenemedi:", err);
+        }
+      }, 5000);
+  
+      return () => clearInterval(interval);
+    }, [session?.id]);
 
   const loadSessions = async () => {
     try {
@@ -428,9 +447,14 @@ function AttendanceStart() {
 
           {session.qrCode && (
             <>
-              <h3 className="font-semibold mb-4">
-                📷 QR Yoklama Kodu
-              </h3>
+              
+              <h3 className="font-semibold mb-4 flex items-center justify-center gap-2">
+  📷 QR Yoklama Kodu
+  <span className="text-xs font-normal text-emerald-600 flex items-center gap-1">
+    <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+    canlı
+  </span>
+</h3>
 
               <div className="flex justify-center">
                 <QRCode

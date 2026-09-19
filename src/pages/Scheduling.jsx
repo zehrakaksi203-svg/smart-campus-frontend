@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import axios from "../api/axios";
-import { generateSchedule, getSchedule } from "../api/scheduling";
+import { generateSchedule, getSchedule, getMySchedule } from "../api/scheduling";
 import { updateCourseSection } from "../api/courses";
+import { getAllDepartments } from "../api/departments";
+import Skeleton from "../components/Skeleton";
 
 const DAYS = ["Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma"];
 
@@ -18,8 +20,6 @@ const DAY_MAP = {
   Cuma: "Cuma",
 };
 
-// Backend'in beklediği İngilizce gün adına çevirmek için (kayıt sırasında
-// hangi dilde tutulduğu section'a göre değişebiliyor)
 const DAY_TO_BACKEND = {
   Pazartesi: "Monday",
   Salı: "Tuesday",
@@ -54,8 +54,6 @@ function colorFor(key, map) {
   return map.get(key);
 }
 
-// HH:MM formatındaki iki saat arasındaki dakika farkını bulup, yeni
-// başlangıç saatine ekleyerek yeni bitiş saatini hesaplar (süre korunur)
 function shiftEndTime(oldStart, oldEnd, newStart) {
   if (!oldStart || !oldEnd || !newStart) return oldEnd;
 
@@ -73,9 +71,46 @@ function shiftEndTime(oldStart, oldEnd, newStart) {
   return `${hh}:${mm}`;
 }
 
+function SchedulingSkeleton({ canEdit }) {
+  return (
+    <div className="max-w-6xl mx-auto p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <Skeleton className="h-7 w-40 mb-2" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <div className="flex items-center gap-3">
+          {canEdit && <Skeleton className="h-10 w-28 rounded-lg" />}
+          {canEdit && <Skeleton className="h-10 w-36 rounded-lg" />}
+          {canEdit && <Skeleton className="h-10 w-40 rounded-lg" />}
+        </div>
+      </div>
+
+      <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-200 p-3">
+        <div className="grid grid-cols-6 gap-2">
+          <Skeleton className="h-6" />
+          {DAYS.map((d) => (
+            <Skeleton key={d} className="h-6" />
+          ))}
+         {Array.from({ length: 5 }).map((_, r) => (
+  <div key={r} className="contents">
+    <Skeleton className="h-16" />
+    {DAYS.map((_, c) => (
+      <Skeleton key={c} className="h-16" />
+    ))}
+  </div>
+))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Scheduling() {
   const [role, setRole] = useState(null);
   const [semester, setSemester] = useState("Güz");
+  const [departments, setDepartments] = useState([]);
+  const [departmentId, setDepartmentId] = useState("");
   const [sections, setSections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -86,21 +121,36 @@ export default function Scheduling() {
   const [savingId, setSavingId] = useState(null);
 
   const canEdit = role === "Admin" || role === "Faculty";
+  const isAdmin = role === "Admin";
 
   const colorMap = new Map();
 
   useEffect(() => {
     axios.get("/users/me").then((res) => setRole(res.data.role));
+    getAllDepartments()
+      .then((res) => setDepartments(res.data || []))
+      .catch(() => setDepartments([]));
   }, []);
 
-  const loadSchedule = async (sem) => {
+  const loadSchedule = async (sem, currentRole, dept) => {
     setLoading(true);
     setError("");
     try {
-      const data = await getSchedule();
-      const all = Array.isArray(data) ? data : data.sections || [];
-      const accepted = SEMESTER_MAP[sem] || [sem];
-      setSections(all.filter((s) => accepted.includes(s.semester)));
+      if (currentRole === "Student") {
+        const data = await getMySchedule();
+        const all = Array.isArray(data) ? data : data.sections || [];
+        setSections(all);
+      } else if (currentRole === "Faculty") {
+        const data = await getMySchedule();
+        const all = Array.isArray(data) ? data : data.sections || [];
+        const accepted = SEMESTER_MAP[sem] || [sem];
+        setSections(all.filter((s) => accepted.includes(s.semester)));
+      } else {
+        const data = await getSchedule(sem, dept || undefined);
+        const all = Array.isArray(data) ? data : data.sections || [];
+        const accepted = SEMESTER_MAP[sem] || [sem];
+        setSections(all.filter((s) => accepted.includes(s.semester)));
+      }
     } catch (err) {
       setError("Program yüklenirken bir hata oluştu.");
     } finally {
@@ -109,13 +159,14 @@ export default function Scheduling() {
   };
 
   useEffect(() => {
-    loadSchedule(semester);
-  }, [semester]);
+    if (role === null) return;
+    loadSchedule(semester, role, departmentId);
+  }, [semester, role, departmentId]);
 
   const handleGenerate = async () => {
     if (sections.length > 0) {
       const confirmed = window.confirm(
-        "Bu dönem için zaten bir program var. Yeniden oluşturursanız mevcut program (yaptığınız manuel değişiklikler dahil) silinip otomatik olarak yeniden dağıtılacak. Devam etmek istiyor musunuz?"
+        "Bu dönem/bölüm için zaten bir program var. Yeniden oluşturursanız mevcut program (yaptığınız manuel değişiklikler dahil) silinip otomatik olarak yeniden dağıtılacak. Devam etmek istiyor musunuz?"
       );
       if (!confirmed) return;
     }
@@ -124,9 +175,9 @@ export default function Scheduling() {
     setMessage("");
     setError("");
     try {
-      await generateSchedule(semester);
+      await generateSchedule(semester, departmentId || undefined);
       setMessage("Ders programı başarıyla oluşturuldu.");
-      await loadSchedule(semester);
+      await loadSchedule(semester, role, departmentId);
     } catch (err) {
       setError(
         err?.response?.data?.message ||
@@ -240,6 +291,10 @@ export default function Scheduling() {
     }
   };
 
+  if (loading) {
+    return <SchedulingSkeleton canEdit={canEdit} />;
+  }
+
   return (
     <div className="max-w-6xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
@@ -252,16 +307,32 @@ export default function Scheduling() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <select
-            value={semester}
-            onChange={(e) => setSemester(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm"
-          >
-            <option value="Güz">Güz</option>
-            <option value="Bahar">Bahar</option>
-            <option value="Yaz">Yaz</option>
-          </select>
-          {role === "Admin" && (
+          {canEdit && (
+            <select
+              value={semester}
+              onChange={(e) => setSemester(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm"
+            >
+              <option value="Güz">Güz</option>
+              <option value="Bahar">Bahar</option>
+              <option value="Yaz">Yaz</option>
+            </select>
+          )}
+          {isAdmin && (
+            <select
+              value={departmentId}
+              onChange={(e) => setDepartmentId(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm"
+            >
+              <option value="">Tüm Bölümler</option>
+              {departments.map((dep) => (
+                <option key={dep.id} value={dep.id}>
+                  {dep.name}
+                </option>
+              ))}
+            </select>
+          )}
+          {isAdmin && (
             <button
               onClick={handleGenerate}
               disabled={generating}
@@ -284,11 +355,9 @@ export default function Scheduling() {
         </div>
       )}
 
-      {loading ? (
-        <div className="text-center text-gray-400 py-16">Yükleniyor...</div>
-      ) : sections.length === 0 ? (
+      {sections.length === 0 ? (
         <div className="text-center text-gray-400 py-16 bg-white rounded-xl border border-dashed border-gray-300">
-          Bu dönem için henüz bir program oluşturulmamış.
+          Bu dönem/bölüm için henüz bir program oluşturulmamış.
         </div>
       ) : (
         <div className="overflow-x-auto bg-white rounded-xl shadow-sm border border-gray-200">

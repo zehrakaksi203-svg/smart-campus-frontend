@@ -1,12 +1,105 @@
 import { useEffect, useState } from "react";
 import api from "../api/axios";
 import { Link } from "react-router-dom";
+import ChatBot from "../components/ChatBot";
+import Skeleton from "../components/Skeleton";
+import campusBanner from "../assets/foto.jpg";
 
 const ROLE_LABELS = {
   Admin: "Yönetici",
   Faculty: "Öğretim Üyesi",
   Student: "Öğrenci",
 };
+
+// Karşılama şeridinde birkaç saniyede bir değişen kampüs temalı görseller
+const HIGHLIGHTS = [
+  { emoji: "📚", text: "Bugün yeni bir şey öğrenmeye ne dersin?" },
+  { emoji: "🎓", text: "Hedeflerine bir adım daha yaklaştın." },
+  { emoji: "🗓️", text: "Ders programını kontrol etmeyi unutma." },
+  { emoji: "🎉", text: "Kampüste bu hafta etkinlikler var." },
+  { emoji: "📢", text: "Güncel duyuruları kaçırma." },
+];
+
+function DashboardSkeleton() {
+  return (
+    <div className="min-h-screen bg-[#f7f8fc]">
+      <div className="mx-auto max-w-7xl p-5 md:p-8 xl:p-10">
+        <div className="mb-7 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <Skeleton className="h-4 w-40 mb-2" />
+            <Skeleton className="h-8 w-72" />
+          </div>
+          <Skeleton className="h-10 w-48 rounded-xl" />
+        </div>
+
+        <div className="mb-8 min-h-44 rounded-3xl bg-white border border-slate-200 p-6 md:p-8">
+          <Skeleton className="h-4 w-24 mb-3" />
+          <Skeleton className="h-8 w-56 mb-3" />
+          <Skeleton className="h-4 w-80 mb-4" />
+          <Skeleton className="h-6 w-32 rounded-full" />
+        </div>
+
+        <Skeleton className="h-3 w-32 mb-3" />
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 mb-8">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <div
+              key={i}
+              className="rounded-2xl border border-slate-200 bg-white p-5"
+            >
+              <Skeleton className="w-11 h-11 rounded-xl mb-4" />
+              <Skeleton className="h-4 w-24 mb-2" />
+              <Skeleton className="h-3 w-full" />
+            </div>
+          ))}
+        </div>
+
+        <Skeleton className="h-3 w-16 mb-3" />
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 md:p-6">
+          <div className="grid sm:grid-cols-3 gap-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i}>
+                <Skeleton className="h-3 w-20 mb-2" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RotatingHighlight() {
+  const [index, setIndex] = useState(0);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVisible(false);
+      setTimeout(() => {
+        setIndex((prev) => (prev + 1) % HIGHLIGHTS.length);
+        setVisible(true);
+      }, 300);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const current = HIGHLIGHTS[index];
+
+  return (
+    <div
+      className={`flex items-center gap-3 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 px-4 py-3 transition-opacity duration-300 ${
+        visible ? "opacity-100" : "opacity-0"
+      }`}
+      aria-live="polite"
+    >
+      <span className="text-3xl" aria-hidden="true">
+        {current.emoji}
+      </span>
+      <p className="text-sm font-semibold text-white">{current.text}</p>
+    </div>
+  );
+}
 
 function Dashboard() {
   const [user, setUser] = useState(null);
@@ -34,11 +127,7 @@ function Dashboard() {
   }
 
   if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <p className="text-slate-400 font-medium">Yükleniyor...</p>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   const hour = new Date().getHours();
@@ -112,24 +201,37 @@ function Dashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="max-w-6xl mx-auto p-6 md:p-10">
+    <div className="min-h-screen bg-[#f7f8fc]">
+      <div className="mx-auto max-w-7xl p-5 md:p-8 xl:p-10">
+        <div className="mb-7 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-indigo-600">Kampüs kontrol merkezi</p>
+            <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-900 md:text-3xl">Bugün kampüste neler var?</h1>
+          </div>
+          <Link to="/scheduling" className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-600 shadow-sm transition hover:border-indigo-200 hover:text-indigo-600">Ders programını aç →</Link>
+        </div>
         {/* Karşılama şeridi */}
-        <div className="rounded-2xl mb-8 text-white shadow-sm relative overflow-hidden h-40 md:h-48">
-          <img
-            src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1200&q=80"
-            alt=""
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-br from-violet-700/90 via-violet-600/80 to-fuchsia-600/70" />
+        <div
+  className="relative mb-8 min-h-44 overflow-hidden rounded-3xl text-white shadow-xl shadow-indigo-200"
+  style={{
+    backgroundImage: `linear-gradient(to top, rgba(0,0,0,0.55), rgba(0,0,0,0.15) 60%, rgba(0,0,0,0.05)), url(${campusBanner})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+  }}
+>
+          <div className="absolute bottom-[-110px] right-40 h-56 w-56 rounded-full bg-violet-400/30 blur-2xl" />
           <div className="relative h-full flex flex-col justify-center p-6 md:p-8">
-            <p className="text-violet-100 text-sm font-medium">{greeting}</p>
-            <h2 className="text-2xl md:text-3xl font-bold mt-1">
+            <p className="text-indigo-100 text-sm font-semibold">{greeting}</p>
+            <h2 className="mt-1 text-2xl font-extrabold md:text-3xl">
               {user.fullName}
             </h2>
-            <span className="inline-flex items-center gap-1.5 bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full mt-3 backdrop-blur-md w-fit">
+            <p className="mt-2 max-w-md text-sm text-indigo-100">Derslerini, kampüs etkinliklerini ve güncel bildirimlerini tek yerden takip et.</p>
+            <span className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full border border-white/20 bg-white/15 px-3 py-1 text-xs font-bold text-white backdrop-blur-md">
               {ROLE_LABELS[user.role] || user.role}
             </span>
+            <div className="mt-4 max-w-sm">
+              <RotatingHighlight />
+            </div>
           </div>
         </div>
 
@@ -137,29 +239,31 @@ function Dashboard() {
         <h3 className="text-sm font-bold uppercase tracking-wide text-slate-400 mb-3">
           Hızlı Erişim
         </h3>
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {cards.map((c) => (
             <Link
               key={c.to}
               to={c.to}
-              className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 hover:shadow-md hover:-translate-y-0.5 transition block"
+              className="group block rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-1 hover:border-indigo-200 hover:shadow-lg hover:shadow-indigo-100/70"
             >
               <div
-                className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg mb-3 ${c.color}`}
+                className={`mb-4 flex h-11 w-11 items-center justify-center rounded-xl text-lg ${c.color}`}
               >
                 {c.icon}
               </div>
-              <h4 className="font-bold text-slate-800">{c.title}</h4>
-              <p className="text-slate-500 text-sm mt-1">{c.desc}</p>
+              <div className="flex items-center justify-between gap-2"><h4 className="font-bold text-slate-800">{c.title}</h4><span className="text-slate-300 transition group-hover:translate-x-1 group-hover:text-indigo-500">→</span></div>
+              <p className="mt-1 text-sm leading-6 text-slate-500">{c.desc}</p>
             </Link>
           ))}
         </div>
 
+        {/* AI Kampüs Asistanı */}
+       
         {/* Hesap bilgisi */}
         <h3 className="text-sm font-bold uppercase tracking-wide text-slate-400 mb-3 mt-8">
           Hesap
         </h3>
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
           <div className="grid sm:grid-cols-3 gap-4 text-sm">
             <div>
               <p className="text-xs text-slate-400 font-semibold uppercase">Ad Soyad</p>
@@ -176,6 +280,7 @@ function Dashboard() {
               </p>
             </div>
           </div>
+          {user.role === "Student" && <ChatBot />}
         </div>
       </div>
     </div>

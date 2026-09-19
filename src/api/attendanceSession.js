@@ -8,6 +8,10 @@ export const getMySessions = () => {
   return api.get("/attendance/sessions/my-sessions");
 };
 
+export const getMyAvailableSessions = () => {
+  return api.get("/attendance/sessions/my-available-sessions");
+};
+
 export const closeSession = (id) => {
   return api.put(`/attendance/sessions/${id}/close`);
 };

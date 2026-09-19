@@ -11,3 +11,15 @@ export const getSchedule = async (semester) => {
   });
   return res.data;
 };
+
+export const getMySchedule = async () => {
+  const res = await axios.get("/scheduling/my-schedule");
+  return res.data;
+};
+
+export const exportMyScheduleIcal = async () => {
+  const res = await axios.get("/scheduling/my-schedule/ical", {
+    responseType: "blob",
+  });
+  return res.data;
+};

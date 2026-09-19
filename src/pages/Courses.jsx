@@ -4,6 +4,56 @@ import { getAllCourseSections } from "../api/courses";
 import { getAllDepartments } from "../api/departments";
 import { getMyEnrollments, createEnrollment } from "../api/enrollments";
 import { Link } from "react-router-dom";
+import Skeleton from "../components/Skeleton";
+
+function CoursesSkeleton() {
+  return (
+    <div className="min-h-screen bg-slate-50 p-6 md:p-8">
+      <div className="max-w-6xl mx-auto">
+        <Skeleton className="h-7 w-32 mb-2" />
+        <Skeleton className="h-4 w-96 mb-6" />
+
+        <div className="flex gap-2 mb-6">
+          <Skeleton className="h-9 w-36 rounded-lg" />
+          <Skeleton className="h-9 w-36 rounded-lg" />
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-3 mb-6">
+          <Skeleton className="h-10 flex-1 rounded-lg" />
+          <Skeleton className="h-10 w-48 rounded-lg" />
+        </div>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div
+              key={i}
+              className="bg-white rounded-xl border border-slate-200 shadow-sm p-5"
+            >
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <div className="flex-1">
+                  <Skeleton className="h-4 w-3/4 mb-2" />
+                  <Skeleton className="h-3 w-1/3" />
+                </div>
+                <Skeleton className="h-5 w-12 rounded-full" />
+              </div>
+              <div className="flex items-center gap-2 mb-3 pt-3 border-t border-slate-100">
+                <Skeleton className="w-8 h-8 rounded-full" />
+                <Skeleton className="h-3 w-32" />
+              </div>
+              <div className="grid grid-cols-2 gap-2 mb-4">
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-3 w-16" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+              <Skeleton className="h-9 w-full rounded-lg" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function Courses() {
   const [activeTab, setActiveTab] = useState("all");
@@ -90,11 +140,7 @@ function Courses() {
   });
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <p className="text-slate-400 font-medium">Yükleniyor...</p>
-      </div>
-    );
+    return <CoursesSkeleton />;
   }
 
   return (
@@ -105,9 +151,15 @@ function Courses() {
           Ders şubelerini görüntüle, gün/saat/öğretim üyesi bilgilerine göz at.
         </p>
 
-        <div className="flex gap-2 mb-6 bg-slate-100 p-1 rounded-lg w-fit">
+        <div
+          role="tablist"
+          aria-label="Ders görünümü seçimi"
+          className="flex gap-2 mb-6 bg-slate-100 p-1 rounded-lg w-fit"
+        >
           {role === "Student" && (
             <button
+              role="tab"
+              aria-selected={activeTab === "my"}
               onClick={() => setActiveTab("my")}
               className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${
                 activeTab === "my"
@@ -119,6 +171,8 @@ function Courses() {
             </button>
           )}
           <button
+            role="tab"
+            aria-selected={activeTab === "all"}
             onClick={() => setActiveTab("all")}
             className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${
               activeTab === "all"
@@ -131,42 +185,65 @@ function Courses() {
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-lg mb-4">
+          <div
+            role="alert"
+            className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-lg mb-4"
+          >
             {error}
           </div>
         )}
         {message && (
-          <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm p-3 rounded-lg mb-4">
+          <div
+            role="status"
+            aria-live="polite"
+            className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm p-3 rounded-lg mb-4"
+          >
             {message}
           </div>
         )}
 
         {activeTab === "all" && (
           <div className="flex flex-col md:flex-row gap-3 mb-6">
-            <input
-              type="text"
-              placeholder="Ders kodu veya adı ile ara..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
-            />
-            <select
-              value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
-              className="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
-            >
-              <option value="">Tüm Bölümler</option>
-              {departments.map((dep) => (
-                <option key={dep.id} value={dep.id}>
-                  {dep.name}
-                </option>
-              ))}
-            </select>
+            <div className="flex-1">
+              <label htmlFor="course-search" className="sr-only">
+                Ders kodu veya adı ile ara
+              </label>
+              <input
+                id="course-search"
+                type="text"
+                placeholder="Ders kodu veya adı ile ara..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="department-filter" className="sr-only">
+                Bölüme göre filtrele
+              </label>
+              <select
+                id="department-filter"
+                value={departmentFilter}
+                onChange={(e) => setDepartmentFilter(e.target.value)}
+                className="border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
+              >
+                <option value="">Tüm Bölümler</option>
+                {departments.map((dep) => (
+                  <option key={dep.id} value={dep.id}>
+                    {dep.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         )}
 
         {activeTab === "my" && role === "Student" && (
-          <div className="grid md:grid-cols-2 gap-4">
+          <div
+            role="tabpanel"
+            aria-label="Kayıtlı derslerim"
+            className="grid md:grid-cols-2 gap-4"
+          >
             {myCourses.length === 0 && (
               <div className="text-center text-slate-400 py-16 bg-white rounded-xl border border-dashed border-slate-300 col-span-2">
                 Henüz kayıtlı ders yok.
@@ -208,7 +285,11 @@ function Courses() {
         )}
 
         {activeTab === "all" && (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div
+            role="tabpanel"
+            aria-label="Açık ders şubeleri"
+            className="grid md:grid-cols-2 lg:grid-cols-3 gap-4"
+          >
             {filteredSections.length === 0 && (
               <div className="text-center text-slate-400 py-16 bg-white rounded-xl border border-dashed border-slate-300 col-span-full">
                 Filtreye uyan ders bulunamadı.
@@ -219,6 +300,9 @@ function Courses() {
               const full =
                 section.enrolledCount != null &&
                 section.enrolledCount >= section.capacity;
+              const courseLabel = `${section.course?.courseCode || ""} ${
+                section.course?.courseName || "Ders"
+              }`.trim();
 
               return (
                 <div
@@ -247,13 +331,21 @@ function Courses() {
                             ? "bg-red-50 text-red-600 border-red-200"
                             : "bg-emerald-50 text-emerald-600 border-emerald-200"
                         }`}
+                        aria-label={
+                          full
+                            ? "Kontenjan dolu"
+                            : `${section.enrolledCount ?? 0} / ${section.capacity ?? "belirsiz"} kontenjan dolu`
+                        }
                       >
                         {section.enrolledCount ?? 0}/{section.capacity ?? "—"}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100">
-                      <span className="w-8 h-8 rounded-full bg-violet-50 text-violet-600 flex items-center justify-center text-sm font-bold shrink-0">
+                      <span
+                        className="w-8 h-8 rounded-full bg-violet-50 text-violet-600 flex items-center justify-center text-sm font-bold shrink-0"
+                        aria-hidden="true"
+                      >
                         {instructor ? instructor[0] : "?"}
                       </span>
                       <span className="text-sm font-medium text-slate-700 truncate">
@@ -262,18 +354,25 @@ function Courses() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-xs text-slate-500 mt-3">
-                      <p className="flex items-center gap-1.5">
-                        📅 {section.dayOfWeek || "—"}
+                      <p>
+                        <span aria-hidden="true">📅 </span>
+                        <span className="sr-only">Gün: </span>
+                        {section.dayOfWeek || "—"}
                       </p>
-                      <p className="flex items-center gap-1.5">
-                        🕒 {section.startTime?.slice(0, 5) || "—"}
+                      <p>
+                        <span aria-hidden="true">🕒 </span>
+                        <span className="sr-only">Saat: </span>
+                        {section.startTime?.slice(0, 5) || "—"}
                         {section.endTime ? `–${section.endTime.slice(0, 5)}` : ""}
                       </p>
-                      <p className="flex items-center gap-1.5">
-                        📍 {section.classroom || "—"}
+                      <p>
+                        <span aria-hidden="true">📍 </span>
+                        <span className="sr-only">Derslik: </span>
+                        {section.classroom || "—"}
                       </p>
-                      <p className="flex items-center gap-1.5">
-                        🎓 {section.course?.credit ?? "—"} kredi
+                      <p>
+                        <span aria-hidden="true">🎓 </span>
+                        {section.course?.credit ?? "—"} kredi
                       </p>
                     </div>
                   </div>
@@ -281,6 +380,7 @@ function Courses() {
                   <div className="mt-4 space-y-2">
                     <Link
                       to={`/courses/${section.courseId}`}
+                      aria-label={`${courseLabel} detaylarını gör`}
                       className="block w-full text-center bg-slate-100 hover:bg-slate-200 text-slate-700 py-2 rounded-lg text-sm font-medium transition"
                     >
                       Detayları Gör
@@ -290,6 +390,14 @@ function Courses() {
                       <button
                         onClick={() => handleEnroll(section.id)}
                         disabled={isEnrolled(section.id) || enrollingId === section.id || full}
+                        aria-label={
+                          isEnrolled(section.id)
+                            ? `${courseLabel} dersine zaten kayıtlısın`
+                            : full
+                            ? `${courseLabel} dersinde kontenjan dolu`
+                            : `${courseLabel} dersine kayıt ol`
+                        }
+                        aria-busy={enrollingId === section.id}
                         className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white py-2 rounded-lg text-sm font-semibold transition"
                       >
                         {isEnrolled(section.id)
@@ -305,6 +413,7 @@ function Courses() {
                     {(role === "Faculty" || role === "Admin") && (
                       <Link
                         to={`/gradebook/${section.id}`}
+                        aria-label={`${courseLabel} için notları gir`}
                         className="block w-full text-center bg-violet-600 hover:bg-violet-700 text-white py-2 rounded-lg text-sm font-semibold transition"
                       >
                         Notları Gir

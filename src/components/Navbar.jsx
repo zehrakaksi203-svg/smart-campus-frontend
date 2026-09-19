@@ -1,230 +1,111 @@
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import api from "../api/axios";
+import NotificationBell from "./NotificationBell";
+import Icon from "./Icon";
+import GlobalSearch from "./GlobalSearch";
 
-const ROLE_LABELS = {
-  Admin: "Yönetici",
-  Faculty: "Öğretim Üyesi",
-  Student: "Öğrenci",
-};
+const ROLE_LABELS = { Admin: "Yönetici", Faculty: "Öğretim Üyesi", Student: "Öğrenci" };
 
-function NavDropdown({ label, items, isActive }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-
-  useEffect(() => {
-    const onClickOutside = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
-  }, []);
-
+function MenuLink({ to, icon, children, onClick }) {
   return (
-    <div className="relative" ref={ref}>
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition ${
-          isActive || open
-            ? "bg-violet-50 text-violet-700"
-            : "text-slate-600 hover:bg-slate-100"
-        }`}
-      >
-        {label}
-        <svg
-          className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2.5}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {open && (
-        <div className="absolute left-0 mt-1 w-52 bg-white rounded-xl border border-slate-200 shadow-lg py-1.5 z-20">
-          {items.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-3.5 py-2 text-sm text-slate-600 hover:bg-slate-50 hover:text-violet-700 transition"
-            >
-              <span className="text-base leading-none">{item.icon}</span>
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      )}
-    </div>
+    <NavLink
+      to={to}
+      onClick={onClick}
+      className={({ isActive }) => `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${isActive ? "bg-indigo-50 text-indigo-600 shadow-sm" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"}`}
+    >
+      <span className="grid h-5 w-5 place-items-center">{icon}</span>
+      {children}
+    </NavLink>
   );
 }
 
 function Navbar() {
   const navigate = useNavigate();
-  const location = useLocation();
   const [role, setRole] = useState(null);
   const [name, setName] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("smart-campus-theme") === "dark");
 
   useEffect(() => {
-    api
-      .get("/users/me")
-      .then((res) => {
-        setRole(res.data.role);
-        setName(res.data.firstName || res.data.name || "");
-      })
-      .catch((err) => console.error("NAVBAR ROLE ERROR:", err));
+    api.get("/users/me").then((res) => {
+      setRole(res.data.role);
+      setName(res.data.fullName || res.data.firstName || res.data.name || "");
+    }).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", darkMode);
+    localStorage.setItem("smart-campus-theme", darkMode ? "dark" : "light");
+  }, [darkMode]);
+
+  const closeMenu = () => setMenuOpen(false);
   const handleLogout = () => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     navigate("/login");
   };
-
-  const attendanceLink =
-    role === "Student"
-      ? { to: "/my-attendance", label: "Devamsızlığım" }
-      : { to: "/attendance", label: "Devamsızlık" };
-
-  const directLinks = [
-    { to: "/dashboard", label: "Ana Sayfa", icon: "🏠" },
-  ];
-
-  const akademikItems = [
-    { to: "/courses", label: "Dersler", icon: "📚" },
-    ...(role === "Student"
-      ? [{ to: "/my-courses", label: "Derslerim", icon: "🎒" }]
-      : []),
-    { to: "/grades", label: "Notlar", icon: "📝" },
-    { to: attendanceLink.to, label: attendanceLink.label, icon: "📍" },
-    ...(role === "Faculty"
-      ? [{ to: "/attendance/start", label: "Yoklama Başlat", icon: "▶️" }]
-      : []),
-  ];
-
-  const kampusItems = [
-    { to: "/announcements", label: "Duyurular", icon: "📢" },
-    { to: "/events", label: "Etkinlikler", icon: "🎉" },
-    { to: "/meals", label: "Yemekler", icon: "🍽️" },
-    { to: "/scheduling", label: "Ders Programı", icon: "🗓️" },
-    { to: "/payments", label: "Ödemeler", icon: "💳" },
-  ];
-
-  const yonetimItems = [
-    ...(role === "Faculty" || role === "Admin"
-      ? [{ to: "/excuse-requests", label: "Mazeret Talepleri", icon: "📄" }]
-      : []),
-    ...(role === "Faculty" || role === "Admin"
-      ? [{ to: "/course-management", label: "Ders Yönetimi", icon: "🛠️" }]
-      : []),
-  ];
-
-  const isInGroup = (items) => items.some((i) => i.to === location.pathname);
+  const initials = name.split(" ").filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase() || "SC";
 
   return (
-    <nav className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-10">
-      <div className="max-w-6xl mx-auto px-6 py-3 flex justify-between items-center gap-4">
-        <Link to="/dashboard" className="flex items-center gap-2.5 shrink-0">
-          <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-violet-400 text-white flex items-center justify-center text-base shadow-sm">
-            🎓
-          </span>
-          <span className="text-lg font-bold text-slate-900 hidden sm:block">
-            Akıllı Kampüs
-          </span>
-        </Link>
+    <>
+      <button type="button" aria-label="Menüyü aç" onClick={() => setMenuOpen(true)} className="fixed left-4 top-4 z-40 grid h-11 w-11 place-items-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm lg:hidden"><Icon name="menu" className="h-5 w-5" /></button>
+      {menuOpen && <button type="button" aria-label="Menüyü kapat" onClick={closeMenu} className="fixed inset-0 z-40 bg-slate-950/30 lg:hidden" />}
 
-        <div className="hidden md:flex items-center gap-1">
-          {directLinks.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-                location.pathname === link.to
-                  ? "bg-violet-50 text-violet-700"
-                  : "text-slate-600 hover:bg-slate-100"
-              }`}
-            >
-              {link.label}
+      <aside className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-slate-200 bg-white px-5 py-6 transition-transform lg:translate-x-0 ${menuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"}`}>
+        <div className="mb-9 flex items-center justify-between px-2">
+          <Link to="/dashboard" onClick={closeMenu} className="flex items-center gap-3">
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-500 text-white shadow-lg shadow-indigo-200"><Icon name="campus" className="h-5 w-5" /></span>
+            <span className="text-xl font-extrabold tracking-tight text-slate-900">SmartCampus</span>
+          </Link>
+          <button type="button" onClick={closeMenu} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 lg:hidden" aria-label="Menüyü kapat"><Icon name="close" className="h-5 w-5" /></button>
+        </div>
+
+        <nav className="space-y-1 overflow-y-auto pr-1">
+          <p className="mb-2 px-3 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">Menü</p>
+          <MenuLink to="/dashboard" icon={<Icon name="home" className="h-5 w-5" />} onClick={closeMenu}>Ana Sayfa</MenuLink>
+          <MenuLink to="/profile" icon={<Icon name="user" className="h-5 w-5" />} onClick={closeMenu}>Profilim</MenuLink>
+          <p className="mb-2 mt-7 px-3 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">Akademik</p>
+          <MenuLink to="/courses" icon={<Icon name="book" className="h-5 w-5" />} onClick={closeMenu}>Dersler</MenuLink>
+          {role === "Student" && <MenuLink to="/my-courses" icon={<Icon name="book" className="h-5 w-5" />} onClick={closeMenu}>Derslerim</MenuLink>}
+          <MenuLink to="/grades" icon={<Icon name="grade" className="h-5 w-5" />} onClick={closeMenu}>Notlar</MenuLink>
+          <MenuLink to={role === "Student" ? "/my-attendance" : "/attendance"} icon={<Icon name="clock" className="h-5 w-5" />} onClick={closeMenu}>{role === "Student" ? "Devamsızlığım" : "Devamsızlık"}</MenuLink>
+          {role === "Faculty" && <MenuLink to="/attendance/start" icon={<Icon name="clock" className="h-5 w-5" />} onClick={closeMenu}>Yoklama Başlat</MenuLink>}
+          <MenuLink to="/scheduling" icon={<Icon name="calendar" className="h-5 w-5" />} onClick={closeMenu}>Ders Programı</MenuLink>
+          <p className="mb-2 mt-7 px-3 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">Kampüs Yaşamı</p>
+          <MenuLink to="/announcements" icon={<Icon name="bell" className="h-5 w-5" />} onClick={closeMenu}>Duyurular</MenuLink>
+          <MenuLink to="/events" icon={<Icon name="spark" className="h-5 w-5" />} onClick={closeMenu}>Etkinlikler</MenuLink>
+          <MenuLink to="/meals" icon={<Icon name="meal" className="h-5 w-5" />} onClick={closeMenu}>Yemekler</MenuLink>
+          <MenuLink to="/reservations" icon={<Icon name="ticket" className="h-5 w-5" />} onClick={closeMenu}>Rezervasyonlar</MenuLink>
+          <MenuLink to="/payments" icon={<Icon name="card" className="h-5 w-5" />} onClick={closeMenu}>Ödemeler</MenuLink>
+          {(role === "Faculty" || role === "Admin") && <>
+            <p className="mb-2 mt-7 px-3 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">Yönetim</p>
+            <MenuLink to="/course-management" icon={<Icon name="settings" className="h-5 w-5" />} onClick={closeMenu}>Ders Yönetimi</MenuLink>
+            <MenuLink to="/excuse-requests" icon={<Icon name="file" className="h-5 w-5" />} onClick={closeMenu}>Mazeret Talepleri</MenuLink>
+            {role === "Admin" && <MenuLink to="/admin/dashboard" icon={<Icon name="chart" className="h-5 w-5" />} onClick={closeMenu}>Yönetici Paneli</MenuLink>}
+          </>}
+        </nav>
+
+        <div className="mt-auto border-t border-slate-100 pt-5">
+          <Link to="/settings/notifications" onClick={closeMenu} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-500 hover:bg-slate-50"><Icon name="settings" className="h-5 w-5" /> Bildirim Ayarları</Link>
+          <button onClick={handleLogout} className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-rose-600 transition hover:bg-rose-50"><Icon name="logout" className="h-5 w-5" /> Çıkış Yap</button>
+        </div>
+      </aside>
+
+      <header className="fixed inset-x-0 top-0 z-30 h-[73px] border-b border-slate-200 bg-white/90 backdrop-blur lg:left-72">
+        <div className="mx-auto flex h-full max-w-[1600px] items-center justify-between gap-4 px-5 pl-20 lg:px-8">
+          <GlobalSearch />
+          <div className="ml-auto flex items-center gap-3">
+            <button type="button" onClick={() => setDarkMode((value) => !value)} aria-label={darkMode ? "Açık temaya geç" : "Koyu temaya geç"} className="hidden h-10 w-10 place-items-center rounded-full border border-slate-200 text-slate-500 transition hover:bg-slate-50 sm:grid"><Icon name={darkMode ? "sun" : "moon"} className="h-5 w-5" /></button>
+            <NotificationBell />
+            <Link to="/profile" className="flex items-center gap-2.5 rounded-xl py-1 pl-1 pr-2 transition hover:bg-slate-50">
+              <span className="grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-indigo-600 to-violet-500 text-xs font-bold text-white">{initials}</span>
+              <span className="hidden text-left md:block"><span className="block max-w-32 truncate text-sm font-bold text-slate-800">{name || "Kullanıcı"}</span><span className="block text-xs font-medium text-indigo-600">{ROLE_LABELS[role] || "Hesabım"}</span></span>
             </Link>
-          ))}
-
-          <NavDropdown
-            label="Akademik"
-            items={akademikItems}
-            isActive={isInGroup(akademikItems)}
-          />
-          <NavDropdown
-            label="Kampüs"
-            items={kampusItems}
-            isActive={isInGroup(kampusItems)}
-          />
-          {yonetimItems.length > 0 && (
-            <NavDropdown
-              label="Yönetim"
-              items={yonetimItems}
-              isActive={isInGroup(yonetimItems)}
-            />
-          )}
-
-          <Link
-            to="/profile"
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
-              location.pathname === "/profile"
-                ? "bg-violet-50 text-violet-700"
-                : "text-slate-600 hover:bg-slate-100"
-            }`}
-          >
-            Profil
-          </Link>
+          </div>
         </div>
-
-        <div className="flex items-center gap-3 shrink-0">
-          {role && (
-            <div className="hidden lg:flex flex-col items-end leading-tight">
-              {name && (
-                <span className="text-sm font-semibold text-slate-800">
-                  {name}
-                </span>
-              )}
-              <span className="text-xs text-violet-600 font-medium">
-                {ROLE_LABELS[role] || role}
-              </span>
-            </div>
-          )}
-          <button
-            onClick={handleLogout}
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold transition"
-          >
-            Çıkış Yap
-          </button>
-        </div>
-      </div>
-
-      {/* Mobil menü */}
-      <div className="md:hidden flex flex-wrap gap-1 px-4 pb-3">
-        {[
-          ...directLinks,
-          { to: "/profile", label: "Profil" },
-          ...akademikItems,
-          ...kampusItems,
-          ...yonetimItems,
-        ].map((link) => (
-          <Link
-            key={link.to}
-            to={link.to}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-              location.pathname === link.to
-                ? "bg-violet-50 text-violet-700"
-                : "text-slate-600 hover:bg-slate-100"
-            }`}
-          >
-            {link.label}
-          </Link>
-        ))}
-      </div>
-    </nav>
+      </header>
+    </>
   );
 }
 

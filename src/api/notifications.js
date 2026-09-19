@@ -1,7 +1,7 @@
 import api from "./axios";
 
-export const getMyNotifications = () => {
-  return api.get("/notifications");
+export const getMyNotifications = (params = {}) => {
+  return api.get("/notifications", { params });
 };
 
 export const getUnreadCount = () => {
@@ -20,3 +20,17 @@ export const sendBulkNotification = (data) => {
   return api.post("/notifications/bulk", data);
 };
 
+// Bildirimi sil
+export const deleteNotification = (id) => {
+  return api.delete(`/notifications/${id}`);
+};
+
+// Bildirim tercihlerini getir
+export const getNotificationPreferences = () => {
+  return api.get("/notifications/preferences");
+};
+
+// Bildirim tercihlerini güncelle
+export const updateNotificationPreferences = (data) => {
+  return api.put("/notifications/preferences", data);
+};

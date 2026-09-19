@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Html5Qrcode } from "html5-qrcode";
-import { getMyAttendance, checkInWithQr } from "../api/attendanceSession";
+import { getMyAttendance, checkInWithQr, getMyAvailableSessions } from "../api/attendanceSession";
 import { createExcuseRequest, getMyExcuseRequests } from "../api/excuseRequests";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -30,9 +30,17 @@ const EXCUSE_STATUS_STYLES = {
   Pending: "bg-amber-50 text-amber-700 border-amber-200",
 };
 
+function formatSessionLabel(s) {
+  const course = s.courseCode ? `${s.courseCode} — ${s.courseName || ""}` : s.courseName || "Ders";
+  const datePart = s.date ? new Date(s.date).toLocaleDateString("tr-TR") : "";
+  const timePart = s.startTime ? s.startTime.slice(0, 5) : "";
+  return `${course} · ${datePart}${timePart ? ` ${timePart}` : ""}`;
+}
+
 function MyAttendance() {
   const navigate = useNavigate();
 
+  const [availableSessions, setAvailableSessions] = useState([]);
   const [manualSessionId, setManualSessionId] = useState("");
   const [myLocation, setMyLocation] = useState(null);
   const [locating, setLocating] = useState(false);
@@ -59,12 +67,14 @@ function MyAttendance() {
     setLoading(true);
     setError("");
     try {
-      const [attRes, excRes] = await Promise.all([
+      const [attRes, excRes, sessRes] = await Promise.all([
         getMyAttendance(),
         getMyExcuseRequests(),
+        getMyAvailableSessions(),
       ]);
       setMyAttendance(attRes.data);
       setMyExcuses(excRes.data);
+      setAvailableSessions(sessRes.data || []);
     } catch (err) {
       setError(
         err.response?.data?.message || "Devamsızlık bilgileri yüklenirken bir hata oluştu."
@@ -249,8 +259,6 @@ function MyAttendance() {
     );
   }
 
-  const giveAttendanceHref = "/attendance/give/" + manualSessionId;
-
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-8">
       <div className="max-w-5xl mx-auto">
@@ -373,20 +381,35 @@ function MyAttendance() {
           <div className="mt-6 pt-5 border-t border-slate-100">
             <h3 className="font-semibold text-sm text-slate-700 mb-1">📍 GPS ile Yoklama Ver</h3>
             <p className="text-sm text-slate-500 mb-3">
-              QR kod çalışmazsa, hocanızın verdiği oturum ID'sini girerek GPS konumunuzla yoklama
+              QR kod çalışmazsa, aşağıdan dersini/oturumunu seçerek GPS konumunuzla yoklama
               verebilirsiniz.
             </p>
-
             <div className="flex gap-2">
-              <input
-                type="number"
-                placeholder="Oturum ID"
+              <select
                 value={manualSessionId}
                 onChange={(e) => setManualSessionId(e.target.value)}
-                className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
-              />
+                className="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
+              >
+                <option value="">Ders/Oturum Seçin</option>
+                {availableSessions.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {formatSessionLabel(s)}
+                  </option>
+                ))}
+              </select>
+
               <Link
-                to={giveAttendanceHref}
+                to={
+                  manualSessionId
+                    ? `/attendance/give/${manualSessionId}`
+                    : "#"
+                }
+                onClick={(e) => {
+                  if (!manualSessionId) {
+                    e.preventDefault();
+                    setError("Lütfen önce bir ders/oturum seçin.");
+                  }
+                }}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition whitespace-nowrap"
               >
                 {EXCUSE_GIVE_LINK_LABEL}
@@ -438,14 +461,19 @@ function MyAttendance() {
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
           <h2 className="font-bold text-slate-800 mb-4">Mazeret Talebi Gönder</h2>
           <form onSubmit={handleSubmitExcuse} className="space-y-3">
-            <input
-              type="number"
-              placeholder="Oturum ID"
+            <select
               value={excuseSessionId}
               onChange={(e) => setExcuseSessionId(e.target.value)}
               required
-              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
-            />
+              className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500"
+            >
+              <option value="">Ders/Oturum Seçin</option>
+              {availableSessions.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {formatSessionLabel(s)}
+                </option>
+              ))}
+            </select>
             <textarea
               placeholder="Mazeret sebebiniz"
               value={excuseReason}
